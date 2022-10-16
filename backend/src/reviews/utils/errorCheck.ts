@@ -4,41 +4,50 @@ import {getReviewsUserId} from "../reviews.service";
 import {NextFunction} from "express";
 import ErrorResponse from "../../utils/error/errorResponse";
 import {err} from "../reviews.controller";
+import {INVALID_INPUT_REVIEWS_CONTENT, INVALID_INPUT_REVIEWS_ID} from "../../utils/error/errorCode";
+
+export const contentParseCheck = async (
+    content : string,
+) => {
+    const result = content.trim();
+    if (result === '' || result === undefined || result === null || result.trim().length < 10 || result.trim().length > 100) {
+        throw new Error(errorCode.INVALID_INPUT_REVIEWS_CONTENT);
+    }
+    return result;
+};
 
 export const reviewsIdParseCheck = async (
     reviewsId : string,
-    next : NextFunction
 ) => {
     let result : number;
+    if (reviewsId === '' || reviewsId === undefined || reviewsId === null) {
+        throw new Error(errorCode.INVALID_INPUT_REVIEWS_ID);
+    }
     try {
         result = parseInt(reviewsId, 10);
-        return result;
     } catch (error : any) {
         // next(new ErrorResponse(errorCode.INVALID_INPUT_REVIEWS, 400));
         throw new Error(errorCode.INVALID_INPUT_REVIEWS);
     }
-    return 0;
+    return result;
 };
 
 export const reviewsIdExistCheck = async (
     reviewsId : number,
-    next : NextFunction
 ) => {
     let result : number;
     try {
         result = await reviewsService.getReviewsUserId(reviewsId);
-        return result;
     } catch (error : any) {
         // next(new ErrorResponse(errorCode.NOT_FOUND_REVIEWS, 404));
         throw new Error(errorCode.NOT_FOUND_REVIEWS);
     }
-    return 0;
+    return result;
 };
 
 export const idAndTokenIdSameCheck = async (
     id : number,
     tokenId : number,
-    next : NextFunction
 ) => {
     if (id !== tokenId) {
         // next(new ErrorResponse(errorCode.UNAUTHORIZED_REVIEWS, 400));

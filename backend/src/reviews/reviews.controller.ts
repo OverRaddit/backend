@@ -7,7 +7,12 @@ import ErrorResponse from '../utils/error/errorResponse';
 import { logger } from '../utils/logger';
 import * as errorCode from '../utils/error/errorCode';
 import * as errorCheck from "./utils/errorCheck";
-import {INVALID_INPUT_REVIEWS, NOT_FOUND_REVIEWS} from "../utils/error/errorCode";
+import {
+  INVALID_INPUT_REVIEWS,
+  INVALID_INPUT_REVIEWS_CONTENT,
+  INVALID_INPUT_REVIEWS_ID,
+  NOT_FOUND_REVIEWS
+} from "../utils/error/errorCode";
 import {idAndTokenIdSameCheck} from "./utils/errorCheck";
 
 export const err = async (
@@ -57,17 +62,21 @@ export const updateReviews = async (
 ) => {
   const { id: tokenId } = req.user as any;
   let reviewsId : number;
-  const content = req?.body?.content;
+  let content : string;
   let reviewsUserId : number;
 
   try {
-    reviewsId = await errorCheck.reviewsIdParseCheck(req?.params?.reviewsId, next);
-    reviewsUserId = await errorCheck.reviewsIdExistCheck(reviewsId, next);
-    await errorCheck.idAndTokenIdSameCheck(reviewsUserId, tokenId, next);
+    content = await errorCheck.contentParseCheck(req?.body?.content);
+    reviewsId = await errorCheck.reviewsIdParseCheck(req?.params?.reviewsId);
+    reviewsUserId = await errorCheck.reviewsIdExistCheck(reviewsId);
+    await errorCheck.idAndTokenIdSameCheck(reviewsUserId, tokenId);
+
     await reviewsService.updateReviews(reviewsId, tokenId, content);
   } catch (error : any) {
-    if (error.message === errorCode.INVALID_INPUT_REVIEWS) {
-      await err(errorCode.INVALID_INPUT_REVIEWS, 400, next);
+    if (error.message === errorCode.INVALID_INPUT_REVIEWS_CONTENT) {
+      await err(errorCode.INVALID_INPUT_REVIEWS_CONTENT, 400, next);
+    } else if (error.message === errorCode.INVALID_INPUT_REVIEWS_ID) {
+      await err(errorCode.INVALID_INPUT_REVIEWS_ID, 400, next);
     } else if (error.message === errorCode.UNAUTHORIZED_REVIEWS) {
       await err(errorCode.UNAUTHORIZED_REVIEWS, 401, next);
     } else if (error.message === errorCode.NOT_FOUND_REVIEWS) {
@@ -78,22 +87,6 @@ export const updateReviews = async (
     return 0;
   }
   return res.status(status.OK).send();
-
-
-  // try {
-  //   reviewsId = parseInt(req?.params?.reviewsId, 10);
-  // } catch (error : any) {
-  //   return err(errorCode.INVALID_INPUT_REVIEWS, 400, next);
-  // }
-  // if (!reviewsIdCheck) return err(errorCode.NOT_FOUND_REVIEWS, 404, next);
-  // if (reviewsUserId !== tokenId) return err(errorCode.UNAUTHORIZED_REVIEWS, 401, next);
-  // try {
-  //   reviewsService.updateReviews(reviewsId, content);
-  //   // await errorCheck.idAndTokenIdSameCheck(reviewsUserId, tokenId);
-  // } catch (error:any) {
-  //   return err(errorCode.UNKNOWN_ERROR, 500, next);
-  // }
-  // return res.status(status.OK).send();
 };
 
 export const deleteReviews = async (
