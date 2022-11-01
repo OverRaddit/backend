@@ -7,6 +7,8 @@ import * as models from './books.model';
 import * as types from './books.type';
 import * as errorCode from '../utils/error/errorCode';
 import { logger } from '../utils/logger';
+import { jipDataSource } from '../../app-data-source';
+import { Likes } from './entity/likes.entity';
 
 export const search = async (
   query: string,
@@ -565,22 +567,32 @@ export const deleteLike = async (userId: number, bookInfoId: number) => {
 };
 
 export const getLikeInfo = async (userId: number, bookInfoId: number) => {
-  const message = "Like(" + userId.toString() + ", " + bookInfoId.toString() + ")를 가져옵니다."
-  console.log(message)
+  // const message = "Like(" + userId.toString() + ", " + bookInfoId.toString() + ")를 가져옵니다."
+  // console.log(message);
 
-  // bookInfoId가 유효한지 확인한다.
+  // // bookInfoId가 유효한지 확인한다.
 
-  // "SELECT * FROM LIKES WHERE bookInfoId=[bookInfoId]"
+  // // "SELECT * FROM LIKES WHERE bookInfoId=[bookInfoId]"
 
-  /*
-  for(좋아요튜플배열)
-  {
-    if (i번째 좋아요 튜플의 작성자 == 로그인한 사용자)
-      isLiked = true;
-  }
-  likeNum = 좋아요튜플배열의 길이
-  */
-  return ({ "bookInfoId": 123, "isLiked" : false, "likeNum" : 15 });
+  // /*
+  // for(좋아요튜플배열)
+  // {
+  //   if (i번째 좋아요 튜플의 작성자 == 로그인한 사용자)
+  //     isLiked = true;
+  // }
+  // likeNum = 좋아요튜플배열의 길이
+  // */
+  // return ({ "bookInfoId": 123, "isLiked" : false, "likeNum" : 15 });
+  jipDataSource.initialize()
+    .then(() => {
+      logger.info('Data Source has been initialized');
+    }).catch((error) => {
+      logger.error(error);
+    });
+  const likes = await jipDataSource.createQueryBuilder().select().from(Likes, 'likes').where('bookInfoId = :bookInfoId', { 'bookInfoId': bookInfoId }).getOne();
+  console.log("🚀 ~ file: books.service.ts ~ line 593 ~ getLikeInfo ~ likes", likes);
+  jipDataSource.destroy();
+  return ({ bookInfoId: likes?.bookInfoId, isLiked: likes?.isDeleted, likeNum: 134 });
 };
 
 export const updateBookInfo = async (bookInfo: types.UpdateBookInfo, book: types.UpdateBook, bookInfoId: number, bookId: number) => {

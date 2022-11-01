@@ -185,3 +185,15 @@ CREATE TABLE `reviews` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2022-02-03 11:46:54
+DROP TABLE IF EXISTS `likes`;
+CREATE TABLE `likes` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `userId` int NOT NULL,
+  `bookInfoId` int  NOT NULL,
+  `isDeleted` boolean NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  KEY `FK_529dceb01ef681127fef04d755d4` (`userId`),
+  KEY `FK_bookInfo3` (`bookInfoId`),
+  CONSTRAINT `FK_529dceb01ef681127fef04d755d4` FOREIGN KEY (`userId`) REFERENCES `user` (`id`),
+  CONSTRAINT `FK_bookInfo3` FOREIGN KEY (`bookInfoId`) REFERENCES `book_info` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
