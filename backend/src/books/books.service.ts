@@ -554,7 +554,6 @@ export const deleteLike = async (userId: number, bookInfoId: number) => {
   console.log(message)
 
   // bookInfoId가 유효한지 확인한다.
-
   // 좋아요 튜플을 삭제할 SQL문을 실행한다.
   /*
     if (삭제한 튜플이 존재함)
@@ -583,7 +582,7 @@ export const getLikeInfo = async (userId: number, bookInfoId: number) => {
   // likeNum = 좋아요튜플배열의 길이
   // */
   // return ({ "bookInfoId": 123, "isLiked" : false, "likeNum" : 15 });
-  jipDataSource.initialize()
+  await jipDataSource.initialize()
     .then(() => {
       logger.info('Data Source has been initialized');
     }).catch((error) => {
@@ -591,7 +590,7 @@ export const getLikeInfo = async (userId: number, bookInfoId: number) => {
     });
   const likes = await jipDataSource.createQueryBuilder().select().from(Likes, 'likes').where('bookInfoId = :bookInfoId', { 'bookInfoId': bookInfoId }).getOne();
   console.log("🚀 ~ file: books.service.ts ~ line 593 ~ getLikeInfo ~ likes", likes);
-  jipDataSource.destroy();
+  await jipDataSource.destroy();
   return ({ bookInfoId: likes?.bookInfoId, isLiked: likes?.isDeleted, likeNum: 134 });
 };
 
