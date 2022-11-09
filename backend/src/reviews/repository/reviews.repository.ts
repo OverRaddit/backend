@@ -1,34 +1,19 @@
 import * as errorCode from '../../utils/error/errorCode';
 import { executeQuery, makeExecuteQuery, pool } from '../../mysql';
+import { Reviews } from '../entity/reviews.entity';
+import { BookInfo } from '../../books/entity/bookInfo.entity';
+import { jipDataSource } from '../../../app-data-source';
+import { count } from 'console';
 
 export const createReviews = async (userId: number, bookInfoId: number, content: string) => {
   // bookInfoId가 유효한지 확인
-  const numberOfBookInfo = await executeQuery(`
-    SELECT COUNT(*) as count
-    FROM book_info
-    WHERE id = ?;
-  `, [bookInfoId]);
-  if (numberOfBookInfo[0].count === 0) {throw new Error(errorCode.INVALID_INPUT_REVIEWS); }
-  const conn = await pool.getConnection();
-  const transactionExecuteQuery = makeExecuteQuery(conn);
-  conn.beginTransaction();
-  try {
-    await transactionExecuteQuery(`
-      INSERT INTO reviews(
-        userId,
-        bookInfoId,
-        updateUserId,
-        isDeleted,
-        content
-      )VALUES (?, ?, ?, ?, ?)
-    `, [userId, bookInfoId, userId, false, content]);
-    conn.commit();
-  } catch (error) {
-    conn.rollback();
-    throw error;
-  } finally {
-    conn.release();
-  }
+  const numberOfBookInfo = await jipDataSource.createQueryBuilder()
+  .select("COUNT(*)")
+  .from(BookInfo, "book_info").where("id = :bookInfoId", {bookInfoId : bookInfoId})
+  .getRawOne()
+
+  const review : Reviews  = new Reviews(userId, bookInfoId, content)
+  jipDataSource.createQueryBuilder().insert().into(Reviews).values(review).execute();
 };
 
 export const getReviewsPage = async (bookInfoId: number, userId: number, page: number, sort: 'asc' | 'desc') => {
