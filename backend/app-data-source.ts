@@ -17,4 +17,5 @@ export const jipDataSource = new DataSource({
     'query',
     'error',
   ],
+  poolSize: 200,
 });
