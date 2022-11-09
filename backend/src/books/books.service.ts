@@ -582,15 +582,11 @@ export const getLikeInfo = async (userId: number, bookInfoId: number) => {
   // likeNum = 좋아요튜플배열의 길이
   // */
   // return ({ "bookInfoId": 123, "isLiked" : false, "likeNum" : 15 });
-  await jipDataSource.initialize()
-    .then(() => {
-      logger.info('Data Source has been initialized');
-    }).catch((error) => {
-      logger.error(error);
-    });
-  const likes = await jipDataSource.createQueryBuilder().select().from(Likes, 'likes').where('bookInfoId = :bookInfoId', { 'bookInfoId': bookInfoId }).getOne();
+  const likes = await jipDataSource.createQueryBuilder()
+    .select()
+    .from(Likes, 'likes').where('bookInfoId = :bookInfoId', { bookInfoId })
+    .getOne();
   console.log("🚀 ~ file: books.service.ts ~ line 593 ~ getLikeInfo ~ likes", likes);
-  await jipDataSource.destroy();
   return ({ bookInfoId: likes?.bookInfoId, isLiked: likes?.isDeleted, likeNum: 134 });
 };
 

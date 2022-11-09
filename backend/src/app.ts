@@ -7,11 +7,18 @@ import router from './routes';
 import swaggerOptions from './swagger/swagger';
 import errorHandler from './utils/error/errorHandler';
 import { FtStrategy, JwtStrategy, FtAuthentication } from './auth/auth.strategy';
-import { morganMiddleware } from './utils/logger';
+import { morganMiddleware, logger } from './utils/logger';
+import { jipDataSource } from '../app-data-source';
 
 const app: express.Application = express();
 const cors = require('cors');
 
+jipDataSource.initialize()
+  .then(() => {
+    logger.info('Data Source has been initialized');
+  }).catch((error) => {
+    logger.error(error);
+  });
 app.use(morganMiddleware);
 app.use(cookieParser());
 app.use(passport.initialize());
