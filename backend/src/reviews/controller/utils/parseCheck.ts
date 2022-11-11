@@ -1,10 +1,10 @@
 export const sortParse = (
   sort : any,
-) : 'asc' | 'desc' => {
+) : 'ASC' | 'DESC' => {
   if (sort === 'asc' || sort === 'desc') {
-    return sort;
+    return sort.toUpperCase();
   }
-  return 'desc';
+  return 'DESC';
 };
 
 export const pageParse = (

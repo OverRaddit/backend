@@ -1,60 +1,59 @@
+import { count } from 'console';
 import * as errorCode from '../../utils/error/errorCode';
 import { executeQuery, makeExecuteQuery, pool } from '../../mysql';
 import { Reviews } from '../entity/reviews.entity';
 import { BookInfo } from '../../books/entity/bookInfo.entity';
 import { jipDataSource } from '../../../app-data-source';
-import { count } from 'console';
 
 export const createReviews = async (userId: number, bookInfoId: number, content: string) => {
   // bookInfoId가 유효한지 확인
   const numberOfBookInfo = await jipDataSource.createQueryBuilder()
-  .select("COUNT(*)")
-  .from(BookInfo, "book_info").where("id = :bookInfoId", {bookInfoId : bookInfoId})
-  .getRawOne()
+    .select('COUNT(*)')
+    .from(BookInfo, 'book_info').where('id = :bookInfoId', { bookInfoId })
+    .getRawOne();
 
-  const review : Reviews  = new Reviews(userId, bookInfoId, content)
-  jipDataSource.createQueryBuilder().insert().into(Reviews).values(review).execute();
+  if (numberOfBookInfo) {
+    const review : Reviews = new Reviews(userId, bookInfoId, content);
+    jipDataSource.createQueryBuilder().insert().into(Reviews).values(review)
+      .execute();
+  }
 };
 
-export const getReviewsPage = async (bookInfoId: number, userId: number, page: number, sort: 'asc' | 'desc') => {
-  const bookInfoIdQuery = (Number.isNaN(bookInfoId)) ? '' : `AND reviews.bookInfoId = ${bookInfoId}`;
-  const userIdQuery = (Number.isNaN(userId)) ? '' : `AND reviews.userId = ${userId}`;
-  const sortQuery = `ORDER BY reviews.id ${sort}`;
-
-  const reviews = await executeQuery(`
-  SELECT
-    reviews.id as reviewsId,
-    reviews.userId as reviewerId,
-    reviews.bookInfoId,
-    reviews.content,
-    reviews.createdAt,
-    book_info.title,
-    user.nickname
-  FROM reviews
-  JOIN user ON user.id = reviews.userId
-  JOIN book_info ON reviews.bookInfoId = book_info.id  
-  WHERE reviews.isDeleted = false
-    ${bookInfoIdQuery}
-    ${userIdQuery}
-    ${sortQuery}
-  LIMIT 10 
-  OFFSET ?
-  `, [page * 10]);
+export const getReviewsPage = async (bookInfoId: number, userId: number, page: number, sort: 'ASC' | 'DESC') => {
+  const middleQuery = jipDataSource.createQueryBuilder('reviews', 'r')
+    .innerJoin('user', 'u', 'r.userId = u.id')
+    .innerJoin('book_info', 'b', 'r.bookInfoId = b.id')
+    .select('r.id', 'reviewsId')
+    .addSelect('r.userId', 'reviewerId')
+    .addSelect('r.bookInfoId')
+    .addSelect('r.content')
+    .addSelect('r.createdAt')
+    .addSelect('b.title')
+    .addSelect('u.nickname')
+    .where('r.isDeleted = false');
+  if (Number.isNaN(bookInfoId) === false) {
+    middleQuery.andWhere('r.bookInfoId = :bookInfoId', { bookInfoId });
+  }
+  if (Number.isNaN(userId) === false) {
+    middleQuery.andWhere('r.userId = :userId', { userId });
+  }
+  middleQuery.orderBy('r.id', sort);
+  const reviews = middleQuery.take(10).skip(page * 10).getRawMany();
   return (reviews);
 };
 
 export const getReviewsCounts = async (bookInfoId: number, userId: number) => {
-  const bookInfoIdQuery = (Number.isNaN(bookInfoId)) ? '' : `AND reviews.bookInfoId = ${bookInfoId}`;
-  const userIdQuery = (Number.isNaN(userId)) ? '' : `AND reviews.userId = ${userId}`;
-  const counts = await executeQuery(`
-  SELECT
-    COUNT(*) as counts
-  FROM reviews
-  WHERE reviews.isDeleted = false
-    ${bookInfoIdQuery}
-    ${userIdQuery}
-  `);
-  return (counts[0].counts);
+  const middleQuery = jipDataSource.createQueryBuilder(Reviews, 'r')
+    .select('COUNT(*)')
+    .where('r.isDeleted = false');
+  if (Number.isNaN(bookInfoId) === false) {
+    middleQuery.andWhere('r.bookInfoId = :bookInfoId', { bookInfoId });
+  }
+  if (Number.isNaN(userId) === false) {
+    middleQuery.andWhere('r.userId = :userId', { userId });
+  }
+  const counts = middleQuery.getRawOne();
+  return (counts);
 };
 
 export const getReviewsUserId = async (

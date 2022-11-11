@@ -8,7 +8,7 @@ export const getReviewsPage = async (
   bookInfoId: number,
   userId: number,
   page: number,
-  sort: 'asc' | 'desc',
+  sort: 'ASC' | 'DESC',
 ) => {
   const items = await reviewsRepository.getReviewsPage(bookInfoId, userId, page, sort);
   const counts = await reviewsRepository.getReviewsCounts(bookInfoId, userId);
