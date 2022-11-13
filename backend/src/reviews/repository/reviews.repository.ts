@@ -1,6 +1,4 @@
-import { count } from 'console';
-import * as errorCode from '../../utils/error/errorCode';
-import { executeQuery, makeExecuteQuery, pool } from '../../mysql';
+import { executeQuery } from '../../mysql';
 import { Reviews } from '../entity/reviews.entity';
 import { BookInfo } from '../../books/entity/bookInfo.entity';
 import { jipDataSource } from '../../../app-data-source';
@@ -74,21 +72,19 @@ export const updateReviews = async (
   userId : number,
   content : string,
 ) => {
-  await executeQuery(`
-    UPDATE reviews
-    SET
-      content = ?,
-      updateUserId = ?
-    WHERE id = ?
-    `, [content, userId, reviewsId]);
+  await jipDataSource.createQueryBuilder()
+    .update(Reviews)
+    .set({ content })
+    .set({ updateUserId: userId })
+    .where('id = :reviewsId', { reviewsId })
+    .execute();
 };
 
-export const deleteReviews = async (reviewId: number, deleteUser: number) => {
-  await executeQuery(`
-      UPDATE reviews
-      SET
-        isDeleted = ?,
-        deleteUserId = ?
-      WHERE id = ?
-    `, [true, deleteUser, reviewId]);
+export const deleteReviews = async (reviewsId: number, deleteUser: number) => {
+  await jipDataSource.createQueryBuilder()
+    .update(Reviews)
+    .set({ isDeleted: true })
+    .set({ deleteUserId: deleteUser })
+    .where('id = :reviewsId', { reviewsId })
+    .execute();
 };
