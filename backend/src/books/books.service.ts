@@ -9,6 +9,7 @@ import * as errorCode from '../utils/error/errorCode';
 import { logger } from '../utils/logger';
 import { jipDataSource } from '../../app-data-source';
 import { Likes } from './entity/likes.entity';
+import { BookInfo } from './entity/bookInfo.entity';
 
 export const search = async (
   query: string,
@@ -534,17 +535,46 @@ export const getInfo = async (id: string) => {
   return bookSpec;
 };
 
+export const validate_bookInfo = async (bookInfoId: number) => {
+  // bookInfoId가 유효한지 확인
+  const numberOfBookInfo = await jipDataSource.createQueryBuilder()
+    .select('COUNT(*)')
+    .from(BookInfo, 'book_info').where('id = :bookInfoId', { bookInfoId })
+    .getRawOne();
+  if (numberOfBookInfo == 0)
+    throw new Error(errorCode.INVALID_INFO_ID_LIKES);
+}
+
 export const createLike = async (userId: number, bookInfoId: number) => {
   const message = "Like(" + userId.toString() + ", " + bookInfoId.toString() + ")를 생성합니다."
   console.log(message)
 
-  // bookInfoId가 유효한지 확인한다.
-  // "SELECT  * FROM book_Info WHERE id = [bookInfoId]"
+  // book_info 유효성 검사
+  validate_bookInfo(bookInfoId);
 
   // 사용자가 해당 책에 좋아요를 이미 눌렀는지?
-  // SELECT * FROM LIKES WHERE userId = [userId]
+  const like = await jipDataSource.createQueryBuilder(Likes, "likes")
+    .where('userId = :userId', { userId })
+    .where('bookInfoId = :bookInfoId', { bookInfoId })
+    .getOne();
 
+  // like가 NULL인지 검사
+  if (like && like.isDeleted == false)
+    throw new Error(errorCode.ALREADY_LIKES);
   // 좋아요 튜플 생성
+  if (like)
+    await jipDataSource.createQueryBuilder()
+      .update(Likes)
+      .set({ isDeleted: false })
+      .where('bookInfoId = :bookInfoId', { bookInfoId })
+      .where('userId = :userId', { userId })
+      .execute();
+  else
+  {
+    const like : Likes = new Likes(userId, bookInfoId, false);
+    jipDataSource.createQueryBuilder().insert().into(Likes).values(like)
+      .execute();
+  }
 
   return ({ code: 200, message });
 };
@@ -553,41 +583,49 @@ export const deleteLike = async (userId: number, bookInfoId: number) => {
   const message = "Like(" + userId.toString() + ", " + bookInfoId.toString() + ")를 삭제합니다."
   console.log(message)
 
-  // bookInfoId가 유효한지 확인한다.
-  // 좋아요 튜플을 삭제할 SQL문을 실행한다.
-  /*
-    if (삭제한 튜플이 존재함)
-      정상종료
-    else
-      return ({ errorCode : 603});
-  */
+  // book_info 유효성 검사
+  validate_bookInfo(bookInfoId);
+
+  // query
+  const likes = await jipDataSource.createQueryBuilder(Likes, "likes")
+    .where('bookInfoId = :bookInfoId', { bookInfoId })
+    .where('userId = :userId', { userId })
+    .getMany();
+
+  // 삭제할 데이터가 없을때.
+  if (likes.length == 0 || (likes.length == 1 && likes[0].isDeleted == true))
+    throw new Error(errorCode.NONEXISTENT_LIKES);
+
+  // delete query
+  likes[0].isDeleted = true;
+
+  // likes를 db에 업데이트 하는 방식은 없나? 위에서 탐색한 결과를 그대로 사용하고싶은데,,
+  await jipDataSource.createQueryBuilder()
+    .update(Likes)
+    .set({ isDeleted: true })
+    .where('bookInfoId = :bookInfoId', { bookInfoId })
+    .where('userId = :userId', { userId })
+    .execute();
 
   return ({ code: 200, message });
 };
 
 export const getLikeInfo = async (userId: number, bookInfoId: number) => {
-  // const message = "Like(" + userId.toString() + ", " + bookInfoId.toString() + ")를 가져옵니다."
-  // console.log(message);
+  // book_info 유효성 검사
+  validate_bookInfo(bookInfoId);
 
-  // // bookInfoId가 유효한지 확인한다.
+  // query
+  const likes  = await jipDataSource.createQueryBuilder(Likes, "likes")
+    .where('bookInfoId = :bookInfoId', { bookInfoId })
+    .getMany();
 
-  // // "SELECT * FROM LIKES WHERE bookInfoId=[bookInfoId]"
-
-  // /*
-  // for(좋아요튜플배열)
-  // {
-  //   if (i번째 좋아요 튜플의 작성자 == 로그인한 사용자)
-  //     isLiked = true;
-  // }
-  // likeNum = 좋아요튜플배열의 길이
-  // */
-  // return ({ "bookInfoId": 123, "isLiked" : false, "likeNum" : 15 });
-  const likes = await jipDataSource.createQueryBuilder()
-    .select()
-    .from(Likes, 'likes').where('bookInfoId = :bookInfoId', { bookInfoId })
-    .getOne();
-  console.log("🚀 ~ file: books.service.ts ~ line 593 ~ getLikeInfo ~ likes", likes);
-  return ({ bookInfoId: likes?.bookInfoId, isLiked: likes?.isDeleted, likeNum: 134 });
+  // 사용자가 좋아요를 눌렀는지 확인
+  let isLiked = false;
+  likes.forEach((like: any) => {
+    if (like.userId == userId)
+      isLiked = true;
+  });
+  return ({ bookInfoId, isLiked, likeNum: likes.length });
 };
 
 export const updateBookInfo = async (bookInfo: types.UpdateBookInfo, book: types.UpdateBook, bookInfoId: number, bookId: number) => {
@@ -626,16 +664,16 @@ export const updateBookInfo = async (bookInfo: types.UpdateBookInfo, book: types
   updateBookString = updateBookString.slice(0,-1)
 
   await executeQuery(`
-    UPDATE book_info 
-    SET 
-    ${updateBookInfoString} 
+    UPDATE book_info
+    SET
+    ${updateBookInfoString}
     WHERE id = ${bookInfoId}
     `, queryBookInfoParam);
 
   await executeQuery(`
-    UPDATE book 
-    SET 
-    ${updateBookString} 
+    UPDATE book
+    SET
+    ${updateBookString}
     WHERE id = ${bookId} ;
     `, queryBookParam);
 };
