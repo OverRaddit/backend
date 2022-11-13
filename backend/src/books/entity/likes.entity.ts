@@ -13,4 +13,15 @@ export class Likes {
 
   @Column()
   isDeleted!: boolean;
+
+  constructor(
+    userId: number,
+    bookInfoId: number,
+    isDeleted: boolean,
+  )
+  {
+    this.userId = userId;
+    this.bookInfoId = bookInfoId;
+    this.isDeleted = false;
+  }
 }
