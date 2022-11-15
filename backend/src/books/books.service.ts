@@ -555,7 +555,7 @@ export const createLike = async (userId: number, bookInfoId: number) => {
   // 사용자가 해당 책에 좋아요를 이미 눌렀는지?
   const like = await jipDataSource.createQueryBuilder(Likes, "likes")
     .where('userId = :userId', { userId })
-    .where('bookInfoId = :bookInfoId', { bookInfoId })
+    .andWhere('bookInfoId = :bookInfoId', { bookInfoId })
     .getOne();
 
   // like가 NULL인지 검사
@@ -566,8 +566,8 @@ export const createLike = async (userId: number, bookInfoId: number) => {
     await jipDataSource.createQueryBuilder()
       .update(Likes)
       .set({ isDeleted: false })
-      .where('bookInfoId = :bookInfoId', { bookInfoId })
       .where('userId = :userId', { userId })
+      .andWhere('bookInfoId = :bookInfoId', { bookInfoId })
       .execute();
   else
   {
@@ -588,8 +588,8 @@ export const deleteLike = async (userId: number, bookInfoId: number) => {
 
   // query
   const likes = await jipDataSource.createQueryBuilder(Likes, "likes")
-    .where('bookInfoId = :bookInfoId', { bookInfoId })
     .where('userId = :userId', { userId })
+    .andWhere('bookInfoId = :bookInfoId', { bookInfoId })
     .getMany();
 
   // 삭제할 데이터가 없을때.
@@ -603,8 +603,8 @@ export const deleteLike = async (userId: number, bookInfoId: number) => {
   await jipDataSource.createQueryBuilder()
     .update(Likes)
     .set({ isDeleted: true })
-    .where('bookInfoId = :bookInfoId', { bookInfoId })
     .where('userId = :userId', { userId })
+    .andWhere('bookInfoId = :bookInfoId', { bookInfoId })
     .execute();
 
   return ({ code: 200, message });
